@@ -2,8 +2,8 @@
  * Routvi — Auth Register Handler
  * POST /v1/auth/register
  *
- * Registra un usuario en AWS Cognito User Pool.
- * Valida email, password (política fuerte) y rol (cliente | negocio).
+ * Registers a user in AWS Cognito User Pool.
+ * Validates email, password (strong policy) and role (client | business).
  */
 
 const {
@@ -14,7 +14,7 @@ const {
 
 const { validateRegisterBody } = require('./validator');
 
-// ── Constantes ────────────────────────────────────────────────────────
+// ── Constants ─────────────────────────────────────────────────────────
 const ALLOWED_METHOD   = 'POST';
 const USER_POOL_ID     = process.env.USER_POOL_ID;
 const CLIENT_ID        = process.env.USER_POOL_CLIENT_ID;
@@ -27,7 +27,7 @@ const headers = {
   'Access-Control-Allow-Origin': '*',
 };
 
-// ── Utilidad: respuesta JSON uniforme ────────────────────────────────
+// ── Utility: uniform JSON response ───────────────────────────────────
 function response(statusCode, body) {
   return { statusCode, headers, body: JSON.stringify(body) };
 }
@@ -35,38 +35,38 @@ function response(statusCode, body) {
 // ── Handler ──────────────────────────────────────────────────────────
 exports.handler = async (event) => {
 
-  // 1. Validar método HTTP
+  // 1. Validate HTTP method
   const method = event.httpMethod || event.requestContext?.http?.method;
   if (method !== ALLOWED_METHOD) {
     return response(405, {
       status: 'error',
-      mensaje: `Método ${method} no permitido. Usa POST.`,
+      message: `Method ${method} not allowed. Use POST.`,
     });
   }
 
-  // 2. Parsear body
+  // 2. Parse body
   let bodyData;
   try {
     bodyData = JSON.parse(event.body || '{}');
   } catch {
     return response(400, {
       status: 'error',
-      mensaje: 'El cuerpo de la solicitud no es un JSON válido.',
+      message: 'Request body is not valid JSON.',
     });
   }
 
-  // 3. Validar campos con Joi
+  // 3. Validate fields with Joi
   const { value, error: validationError } = validateRegisterBody(bodyData);
   if (validationError) {
     return response(400, {
       status: 'error',
-      mensaje: validationError,
+      message: validationError,
     });
   }
 
-  const { email, password, rol } = value; // 'rol' ya tiene default 'cliente' aplicado
+  const { email, password, rol } = value; // 'rol' already has default 'cliente' applied
 
-  // 4. Registrar en Cognito
+  // 4. Register in Cognito
   try {
     const signUpCommand = new SignUpCommand({
       ClientId: CLIENT_ID,
@@ -80,7 +80,7 @@ exports.handler = async (event) => {
 
     await cognitoClient.send(signUpCommand);
 
-    // Auto-confirmar el usuario para no requerir verificación de email en esta fase
+    // Auto-confirm the user to skip email verification at this stage
     const confirmCommand = new AdminConfirmSignUpCommand({
       UserPoolId: USER_POOL_ID,
       Username: email,
@@ -88,41 +88,41 @@ exports.handler = async (event) => {
 
     await cognitoClient.send(confirmCommand);
 
-    console.log(`[Routvi] Usuario registrado y confirmado → email: ${email}, rol: ${rol}`);
+    console.log(`[Routvi] User registered and confirmed → email: ${email}, rol: ${rol}`);
 
     return response(201, {
       status: 'success',
-      mensaje: 'Usuario registrado exitosamente en Routvi.',
+      message: 'User successfully registered in Routvi.',
       data: { email, rol },
     });
 
   } catch (err) {
-    console.error('[Routvi] Error al registrar en Cognito:', err);
+    console.error('[Routvi] Error registering in Cognito:', err);
 
-    // Errores conocidos de Cognito
+    // Known Cognito errors
     switch (err.name) {
       case 'UsernameExistsException':
         return response(409, {
           status: 'error',
-          mensaje: 'Ya existe una cuenta registrada con ese email.',
+          message: 'An account with this email already exists.',
         });
 
       case 'InvalidPasswordException':
         return response(400, {
           status: 'error',
-          mensaje: 'La contraseña no cumple los requisitos de seguridad de Cognito.',
+          message: 'Password does not meet Cognito security requirements.',
         });
 
       case 'InvalidParameterException':
         return response(400, {
           status: 'error',
-          mensaje: `Parámetro inválido: ${err.message}`,
+          message: `Invalid parameter: ${err.message}`,
         });
 
       default:
         return response(500, {
           status: 'error',
-          mensaje: 'Error interno al procesar el registro. Intenta de nuevo más tarde.',
+          message: 'Internal error while processing registration. Please try again later.',
         });
     }
   }

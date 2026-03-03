@@ -1,6 +1,6 @@
 /**
- * Routvi — Validador del body de registro
- * Valida: email, password (con política de seguridad) y rol (opcional)
+ * Routvi — Register Body Validator
+ * Validates: email, password (strong security policy) and rol (optional)
  */
 
 const Joi = require('joi');
@@ -10,46 +10,46 @@ const registerSchema = Joi.object({
     .email({ tlds: { allow: false } })
     .required()
     .messages({
-      'string.empty':      '"email" no puede estar vacío.',
-      'string.email':      '"email" debe ser una dirección de correo válida.',
-      'any.required':      '"email" es obligatorio.',
+      'string.empty':  '"email" cannot be empty.',
+      'string.email':  '"email" must be a valid email address.',
+      'any.required':  '"email" is required.',
     }),
 
   password: Joi.string()
     .min(8)
-    .pattern(/[A-Z]/, 'mayúscula')
-    .pattern(/[0-9]/, 'número')
-    .pattern(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'símbolo')
+    .pattern(/[A-Z]/, 'uppercase letter')
+    .pattern(/[0-9]/, 'number')
+    .pattern(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'symbol')
     .required()
     .messages({
-      'string.empty':       '"password" no puede estar vacío.',
-      'string.min':         '"password" debe tener al menos 8 caracteres.',
-      'string.pattern.name': '"password" debe contener al menos una {#name}.',
-      'any.required':       '"password" es obligatorio.',
+      'string.empty':        '"password" cannot be empty.',
+      'string.min':          '"password" must be at least 8 characters long.',
+      'string.pattern.name': '"password" must contain at least one {#name}.',
+      'any.required':        '"password" is required.',
     }),
 
   rol: Joi.string()
     .valid('cliente', 'negocio')
     .default('cliente')
     .messages({
-      'any.only': '"rol" debe ser "cliente" o "negocio".',
+      'any.only': '"rol" must be "cliente" or "negocio".',
     }),
 });
 
 /**
- * Valida el body del request de registro.
- * @param {object} data - El objeto parseado del body
+ * Validates the register request body.
+ * @param {object} data - The parsed body object
  * @returns {{ value: object, error: string|null }}
  */
 function validateRegisterBody(data) {
   const { error, value } = registerSchema.validate(data, {
-    abortEarly: false,   // Devuelve TODOS los errores, no solo el primero
-    stripUnknown: true,  // Ignora campos extras que no están en el schema
+    abortEarly: false,   // Return ALL errors, not just the first one
+    stripUnknown: true,  // Ignore extra fields not defined in the schema
   });
 
   if (error) {
-    const mensajes = error.details.map((d) => d.message);
-    return { value: null, error: mensajes.join(' | ') };
+    const messages = error.details.map((d) => d.message);
+    return { value: null, error: messages.join(' | ') };
   }
 
   return { value, error: null };
