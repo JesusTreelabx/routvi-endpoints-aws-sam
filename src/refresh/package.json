@@ -1,0 +1,11 @@
+{
+    "name": "routvi-refresh",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda de refresh token con AWS Cognito",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+        "joi": "^17.13.3"
+    }
+}

@@ -91,6 +91,25 @@ Resources:
             Path: /v1/auth/login
             Method: post
 
+  # ── Auth: Refresh de tokens ───────────────────────────────────
+  AuthRefreshFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/refresh/
+      Handler: app.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        RefreshApi:
+          Type: Api
+          Properties:
+            Path: /v1/auth/refresh
+            Method: post
+
 Outputs:
   RegisterApiUrl:
     Description: URL del endpoint de registro
@@ -115,3 +134,11 @@ Outputs:
   AuthLoginFunctionArn:
     Description: ARN de la función Lambda de login
     Value: !GetAtt AuthLoginFunction.Arn
+
+  RefreshApiUrl:
+    Description: URL del endpoint de refresh de tokens
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/refresh'
+
+  AuthRefreshFunctionArn:
+    Description: ARN de la función Lambda de refresh
+    Value: !GetAtt AuthRefreshFunction.Arn
