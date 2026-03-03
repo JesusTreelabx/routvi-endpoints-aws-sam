@@ -1,0 +1,11 @@
+{
+    "name": "routvi-register",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda de registro de usuarios con AWS Cognito",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+        "joi": "^17.13.3"
+    }
+}

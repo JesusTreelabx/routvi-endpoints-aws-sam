@@ -1,0 +1,90 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Routvi Backend — Ecosistema de descubrimiento gastronómico.
+  Stack serverless con AWS SAM + Node.js 20.x + Cognito
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: nodejs20.x
+
+Resources:
+
+  # ── Cognito: User Pool ──────────────────────────────────────────────
+  RoutviUserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: routvi-user-pool
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      Schema:
+        - Name: rol
+          AttributeDataType: String
+          Mutable: true
+          Required: false
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: false
+          RequireNumbers: true
+          RequireSymbols: true
+
+  # ── Cognito: User Pool Client (credenciales para el Lambda) ─────────
+  RoutviUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: routvi-backend-client
+      UserPoolId: !Ref RoutviUserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # ── Auth: Registro de usuarios ──────────────────────────────────────
+  AuthRegisterFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/register/
+      Handler: app.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref RoutviUserPool
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:SignUp
+                - cognito-idp:AdminConfirmSignUp
+              Resource: !GetAtt RoutviUserPool.Arn
+      Events:
+        RegisterApi:
+          Type: Api
+          Properties:
+            Path: /v1/auth/register
+            Method: post
+
+Outputs:
+  RegisterApiUrl:
+    Description: URL del endpoint de registro
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/register'
+
+  AuthRegisterFunctionArn:
+    Description: ARN de la función Lambda de registro
+    Value: !GetAtt AuthRegisterFunction.Arn
+
+  UserPoolId:
+    Description: ID del Cognito User Pool de Routvi
+    Value: !Ref RoutviUserPool
+
+  UserPoolClientId:
+    Description: ID del Cognito User Pool Client (backend)
+    Value: !Ref RoutviUserPoolClient

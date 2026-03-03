@@ -1,0 +1,10 @@
+version = 0.1
+[default.deploy.parameters]
+stack_name = "auth-register"
+resolve_s3 = true
+s3_prefix = "auth-register"
+region = "us-east-1"
+profile = "sandbox-jesus"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+image_repositories = []

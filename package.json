@@ -1,0 +1,24 @@
+{
+  "name": "routvi-endpoints-aws-sam",
+  "version": "1.0.0",
+  "description": "Routvi - Ecosistema de descubrimiento gastronómico (Backend AWS SAM)",
+  "main": "index.js",
+  "scripts": {
+    "start:local": "sam local start-api",
+    "dev": "node local-server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "routvi",
+    "gastronomy",
+    "aws",
+    "sam",
+    "serverless"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
