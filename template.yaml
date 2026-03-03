@@ -72,6 +72,25 @@ Resources:
             Path: /v1/auth/register
             Method: post
 
+  # ── Auth: Login de usuarios ────────────────────────────────────────
+  AuthLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/login/
+      Handler: app.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        LoginApi:
+          Type: Api
+          Properties:
+            Path: /v1/auth/login
+            Method: post
+
 Outputs:
   RegisterApiUrl:
     Description: URL del endpoint de registro
@@ -88,3 +107,11 @@ Outputs:
   UserPoolClientId:
     Description: ID del Cognito User Pool Client (backend)
     Value: !Ref RoutviUserPoolClient
+
+  LoginApiUrl:
+    Description: URL del endpoint de login
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/login'
+
+  AuthLoginFunctionArn:
+    Description: ARN de la función Lambda de login
+    Value: !GetAtt AuthLoginFunction.Arn
