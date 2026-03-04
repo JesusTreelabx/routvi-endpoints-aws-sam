@@ -1,0 +1,11 @@
+{
+    "name": "routvi-business-profile-get",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda GET /v1/business/profile",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.0.0",
+        "@aws-sdk/lib-dynamodb": "^3.0.0"
+    }
+}

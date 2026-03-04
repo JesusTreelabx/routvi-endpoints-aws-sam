@@ -2,13 +2,7 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Routvi Backend — Ecosistema de descubrimiento gastronómico.
-  Stack serverless con AWS SAM + Node.js 20.x + Cognito
-
-Globals:
-  Function:
-    Timeout: 10
-    MemorySize: 128
-    Runtime: nodejs20.x
+  Stack raíz: orquesta los sub-stacks de Auth, Business y recursos compartidos.
 
 Resources:
 
@@ -34,7 +28,7 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
 
-  # ── Cognito: User Pool Client (credenciales para el Lambda) ─────────
+  # ── Cognito: User Pool Client ───────────────────────────────────────
   RoutviUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -45,10 +39,7 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # ── API Gateway con Cognito Authorizer ──────────────────────────────
-  # Permite proteger rutas individuales con el token JWT de Cognito.
-  # Las rutas públicas (login, register, etc.) usan AuthorizationType: NONE.
-  # Las rutas protegidas (me) usan AuthorizerId: !Ref RoutviCognitoAuthorizer.
+  # ── API Gateway (compartida entre todos los sub-stacks) ─────────────
   RoutviApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -58,187 +49,48 @@ Resources:
           RoutviCognitoAuthorizer:
             UserPoolArn: !GetAtt RoutviUserPool.Arn
 
-  # ── Auth: Registro de usuarios ──────────────────────────────────────
-  AuthRegisterFunction:
-    Type: AWS::Serverless::Function
+  # ── Sub-stack: Auth ─────────────────────────────────────────────────
+  AuthStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      CodeUri: src/register/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Environment:
-        Variables:
-          USER_POOL_ID: !Ref RoutviUserPool
-          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
-      Policies:
-        - Statement:
-            - Effect: Allow
-              Action:
-                - cognito-idp:SignUp
-                - cognito-idp:AdminConfirmSignUp
-                - cognito-idp:AdminUpdateUserAttributes
-              Resource: !GetAtt RoutviUserPool.Arn
-      Events:
-        RegisterApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/register
-            Method: post
+      TemplateURL: ./templates/auth.yaml
+      Parameters:
+        UserPoolId:       !Ref RoutviUserPool
+        UserPoolClientId: !Ref RoutviUserPoolClient
+        UserPoolArn:      !GetAtt RoutviUserPool.Arn
+        ApiId:            !Ref RoutviApi
 
-  # ── Auth: Login de usuarios ────────────────────────────────────────
-  AuthLoginFunction:
-    Type: AWS::Serverless::Function
+  # ── DynamoDB: Perfiles de negocios ──────────────────────────────────
+  BusinessProfilesTable:
+    Type: AWS::DynamoDB::Table
     Properties:
-      CodeUri: src/login/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Environment:
-        Variables:
-          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
-      Events:
-        LoginApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/login
-            Method: post
+      TableName: BusinessProfiles
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
 
-  # ── Auth: Refresh de tokens ────────────────────────────────────────
-  AuthRefreshFunction:
-    Type: AWS::Serverless::Function
+  # ── Sub-stack: Business ─────────────────────────────────────────────
+  BusinessStack:
+    Type: AWS::CloudFormation::Stack
     Properties:
-      CodeUri: src/refresh/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Environment:
-        Variables:
-          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
-      Events:
-        RefreshApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/refresh
-            Method: post
-
-  # ── Auth: Reset de contraseña (envío de código) ─────────────────────
-  AuthResetPasswordFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/reset-password/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Environment:
-        Variables:
-          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
-      Events:
-        ResetPasswordApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/reset-password
-            Method: post
-
-  # ── Auth: Verificación de código/PIN ──────────────────────────────
-  AuthVerifyCodeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/verify-code/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Environment:
-        Variables:
-          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
-      Events:
-        VerifyCodeApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/verify-code
-            Method: post
-
-  # ── Auth: Usuario actual (protegido con Cognito JWT) ───────────────
-  AuthMeFunction:
-    Type: AWS::Serverless::Function
-    Properties:
-      CodeUri: src/me/
-      Handler: app.handler
-      Runtime: nodejs20.x
-      Architectures:
-        - x86_64
-      Events:
-        MeApi:
-          Type: Api
-          Properties:
-            RestApiId: !Ref RoutviApi
-            Path: /v1/auth/me
-            Method: get
-            Auth:
-              Authorizer: RoutviCognitoAuthorizer
+      TemplateURL: ./templates/business.yaml
+      Parameters:
+        ApiId: !Ref RoutviApi
+        BusinessProfilesTable: !Ref BusinessProfilesTable
 
 Outputs:
-  RegisterApiUrl:
-    Description: URL del endpoint de registro
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/register'
-
-  AuthRegisterFunctionArn:
-    Description: ARN de la función Lambda de registro
-    Value: !GetAtt AuthRegisterFunction.Arn
+  ApiBaseUrl:
+    Description: URL base de la API de Routvi
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod'
 
   UserPoolId:
-    Description: ID del Cognito User Pool de Routvi
+    Description: ID del Cognito User Pool
     Value: !Ref RoutviUserPool
 
   UserPoolClientId:
-    Description: ID del Cognito User Pool Client (backend)
+    Description: ID del Cognito User Pool Client
     Value: !Ref RoutviUserPoolClient
-
-  LoginApiUrl:
-    Description: URL del endpoint de login
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/login'
-
-  AuthLoginFunctionArn:
-    Description: ARN de la función Lambda de login
-    Value: !GetAtt AuthLoginFunction.Arn
-
-  RefreshApiUrl:
-    Description: URL del endpoint de refresh de tokens
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/refresh'
-
-  AuthRefreshFunctionArn:
-    Description: ARN de la función Lambda de refresh
-    Value: !GetAtt AuthRefreshFunction.Arn
-
-  ResetPasswordApiUrl:
-    Description: URL del endpoint de reset de contraseña
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/reset-password'
-
-  AuthResetPasswordFunctionArn:
-    Description: ARN de la función Lambda de reset password
-    Value: !GetAtt AuthResetPasswordFunction.Arn
-
-  VerifyCodeApiUrl:
-    Description: URL del endpoint de verificación de código/PIN
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/verify-code'
-
-  AuthVerifyCodeFunctionArn:
-    Description: ARN de la función Lambda de verify-code
-    Value: !GetAtt AuthVerifyCodeFunction.Arn
-
-  MeApiUrl:
-    Description: URL del endpoint de usuario actual (protegido)
-    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/me'
-
-  AuthMeFunctionArn:
-    Description: ARN de la función Lambda de /me
-    Value: !GetAtt AuthMeFunction.Arn
