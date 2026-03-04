@@ -10,6 +10,7 @@ const {
   CognitoIdentityProviderClient,
   SignUpCommand,
   AdminConfirmSignUpCommand,
+  AdminUpdateUserAttributesCommand,
 } = require('@aws-sdk/client-cognito-identity-provider');
 
 const { validateRegisterBody } = require('./validator');
@@ -88,7 +89,18 @@ exports.handler = async (event) => {
 
     await cognitoClient.send(confirmCommand);
 
-    console.log(`[Routvi] User registered and confirmed → email: ${email}, rol: ${rol}`);
+    // Mark the email as verified so Cognito allows ForgotPassword flow
+    const verifyEmailCommand = new AdminUpdateUserAttributesCommand({
+      UserPoolId: USER_POOL_ID,
+      Username: email,
+      UserAttributes: [
+        { Name: 'email_verified', Value: 'true' },
+      ],
+    });
+
+    await cognitoClient.send(verifyEmailCommand);
+
+    console.log(`[Routvi] User registered, confirmed and email verified -> email: ${email}, rol: ${rol}`);
 
     return response(201, {
       status: 'success',
