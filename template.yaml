@@ -86,8 +86,6 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/auth/register
             Method: post
-            Auth:
-              Authorizer: NONE
 
   # ── Auth: Login de usuarios ────────────────────────────────────────
   AuthLoginFunction:
@@ -108,8 +106,6 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/auth/login
             Method: post
-            Auth:
-              Authorizer: NONE
 
   # ── Auth: Refresh de tokens ────────────────────────────────────────
   AuthRefreshFunction:
@@ -130,8 +126,6 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/auth/refresh
             Method: post
-            Auth:
-              Authorizer: NONE
 
   # ── Auth: Reset de contraseña (envío de código) ─────────────────────
   AuthResetPasswordFunction:
@@ -152,8 +146,6 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/auth/reset-password
             Method: post
-            Auth:
-              Authorizer: NONE
 
   # ── Auth: Verificación de código/PIN ──────────────────────────────
   AuthVerifyCodeFunction:
@@ -174,8 +166,6 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/auth/verify-code
             Method: post
-            Auth:
-              Authorizer: NONE
 
   # ── Auth: Usuario actual (protegido con Cognito JWT) ───────────────
   AuthMeFunction:
