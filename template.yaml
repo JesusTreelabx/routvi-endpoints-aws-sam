@@ -45,6 +45,19 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
+  # ── API Gateway con Cognito Authorizer ──────────────────────────────
+  # Permite proteger rutas individuales con el token JWT de Cognito.
+  # Las rutas públicas (login, register, etc.) usan AuthorizationType: NONE.
+  # Las rutas protegidas (me) usan AuthorizerId: !Ref RoutviCognitoAuthorizer.
+  RoutviApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: Prod
+      Auth:
+        Authorizers:
+          RoutviCognitoAuthorizer:
+            UserPoolArn: !GetAtt RoutviUserPool.Arn
+
   # ── Auth: Registro de usuarios ──────────────────────────────────────
   AuthRegisterFunction:
     Type: AWS::Serverless::Function
@@ -70,8 +83,11 @@ Resources:
         RegisterApi:
           Type: Api
           Properties:
+            RestApiId: !Ref RoutviApi
             Path: /v1/auth/register
             Method: post
+            Auth:
+              Authorizer: NONE
 
   # ── Auth: Login de usuarios ────────────────────────────────────────
   AuthLoginFunction:
@@ -89,10 +105,13 @@ Resources:
         LoginApi:
           Type: Api
           Properties:
+            RestApiId: !Ref RoutviApi
             Path: /v1/auth/login
             Method: post
+            Auth:
+              Authorizer: NONE
 
-  # ── Auth: Refresh de tokens ───────────────────────────────────
+  # ── Auth: Refresh de tokens ────────────────────────────────────────
   AuthRefreshFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -108,10 +127,13 @@ Resources:
         RefreshApi:
           Type: Api
           Properties:
+            RestApiId: !Ref RoutviApi
             Path: /v1/auth/refresh
             Method: post
+            Auth:
+              Authorizer: NONE
 
-  # ── Auth: Reset de contraseña (envío de código) ─────────────────
+  # ── Auth: Reset de contraseña (envío de código) ─────────────────────
   AuthResetPasswordFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -127,13 +149,57 @@ Resources:
         ResetPasswordApi:
           Type: Api
           Properties:
+            RestApiId: !Ref RoutviApi
             Path: /v1/auth/reset-password
             Method: post
+            Auth:
+              Authorizer: NONE
+
+  # ── Auth: Verificación de código/PIN ──────────────────────────────
+  AuthVerifyCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/verify-code/
+      Handler: app.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        VerifyCodeApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/verify-code
+            Method: post
+            Auth:
+              Authorizer: NONE
+
+  # ── Auth: Usuario actual (protegido con Cognito JWT) ───────────────
+  AuthMeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/me/
+      Handler: app.handler
+      Runtime: nodejs20.x
+      Architectures:
+        - x86_64
+      Events:
+        MeApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/me
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
 
 Outputs:
   RegisterApiUrl:
     Description: URL del endpoint de registro
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/register'
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/register'
 
   AuthRegisterFunctionArn:
     Description: ARN de la función Lambda de registro
@@ -149,7 +215,7 @@ Outputs:
 
   LoginApiUrl:
     Description: URL del endpoint de login
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/login'
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/login'
 
   AuthLoginFunctionArn:
     Description: ARN de la función Lambda de login
@@ -157,7 +223,7 @@ Outputs:
 
   RefreshApiUrl:
     Description: URL del endpoint de refresh de tokens
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/refresh'
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/refresh'
 
   AuthRefreshFunctionArn:
     Description: ARN de la función Lambda de refresh
@@ -165,8 +231,24 @@ Outputs:
 
   ResetPasswordApiUrl:
     Description: URL del endpoint de reset de contraseña
-    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/reset-password'
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/reset-password'
 
   AuthResetPasswordFunctionArn:
     Description: ARN de la función Lambda de reset password
     Value: !GetAtt AuthResetPasswordFunction.Arn
+
+  VerifyCodeApiUrl:
+    Description: URL del endpoint de verificación de código/PIN
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/verify-code'
+
+  AuthVerifyCodeFunctionArn:
+    Description: ARN de la función Lambda de verify-code
+    Value: !GetAtt AuthVerifyCodeFunction.Arn
+
+  MeApiUrl:
+    Description: URL del endpoint de usuario actual (protegido)
+    Value: !Sub 'https://${RoutviApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/v1/auth/me'
+
+  AuthMeFunctionArn:
+    Description: ARN de la función Lambda de /me
+    Value: !GetAtt AuthMeFunction.Arn

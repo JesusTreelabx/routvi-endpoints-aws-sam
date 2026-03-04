@@ -1,0 +1,7 @@
+{
+    "name": "routvi-me",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda para obtener el usuario autenticado actual",
+    "main": "app.js",
+    "type": "commonjs"
+}
