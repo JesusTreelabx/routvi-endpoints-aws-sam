@@ -206,7 +206,7 @@ Resources:
   BusinessProfileGetFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/business/perfil-configuracion/profile/
+      CodeUri: src/business/profile-configuration/profile/
       Handler: app.handler
       Architectures:
         - x86_64
@@ -233,7 +233,7 @@ Resources:
   BusinessProfileUpdateFunction:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: src/business/perfil-configuracion/profile-update/
+      CodeUri: src/business/profile-configuration/profile-update/
       Handler: app.handler
       Architectures:
         - x86_64
@@ -253,6 +253,35 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/business/profile
             Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Business: POST publish (change status to published + SSG webhook) ─
+  BusinessPublishFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/profile-configuration/publish/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+          WEBHOOK_URL: ''
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        BusinessPublishApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/business/publish
+            Method: post
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
