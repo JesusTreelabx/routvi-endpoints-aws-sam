@@ -2,11 +2,21 @@ AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
   Routvi Backend — Ecosistema de descubrimiento gastronómico.
-  Stack raíz: orquesta los sub-stacks de Auth, Business y recursos compartidos.
+  Stack serverless con AWS SAM + Node.js 20.x + Cognito + DynamoDB
+
+Globals:
+  Function:
+    Timeout: 10
+    MemorySize: 128
+    Runtime: nodejs20.x
 
 Resources:
 
-  # ── Cognito: User Pool ──────────────────────────────────────────────
+  # ════════════════════════════════════════════════════════════════════
+  # SHARED INFRASTRUCTURE
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Cognito: User Pool (authentication store) ─────────────────────
   RoutviUserPool:
     Type: AWS::Cognito::UserPool
     Properties:
@@ -28,7 +38,7 @@ Resources:
           RequireNumbers: true
           RequireSymbols: true
 
-  # ── Cognito: User Pool Client ───────────────────────────────────────
+  # ── Cognito: User Pool Client (app credentials) ──────────────────
   RoutviUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
@@ -39,7 +49,7 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # ── API Gateway (compartida entre todos los sub-stacks) ─────────────
+  # ── API Gateway (shared across all modules) ────────────────────────
   RoutviApi:
     Type: AWS::Serverless::Api
     Properties:
@@ -49,18 +59,7 @@ Resources:
           RoutviCognitoAuthorizer:
             UserPoolArn: !GetAtt RoutviUserPool.Arn
 
-  # ── Sub-stack: Auth ─────────────────────────────────────────────────
-  AuthStack:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: ./templates/auth.yaml
-      Parameters:
-        UserPoolId:       !Ref RoutviUserPool
-        UserPoolClientId: !Ref RoutviUserPoolClient
-        UserPoolArn:      !GetAtt RoutviUserPool.Arn
-        ApiId:            !Ref RoutviApi
-
-  # ── DynamoDB: Perfiles de negocios ──────────────────────────────────
+  # ── DynamoDB: Business profiles table ──────────────────────────────
   BusinessProfilesTable:
     Type: AWS::DynamoDB::Table
     Properties:
@@ -73,14 +72,189 @@ Resources:
         - AttributeName: userId
           KeyType: HASH
 
-  # ── Sub-stack: Business ─────────────────────────────────────────────
-  BusinessStack:
-    Type: AWS::CloudFormation::Stack
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: AUTH  (/v1/auth/*)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Auth: User registration ─────────────────────────────────────────
+  AuthRegisterFunction:
+    Type: AWS::Serverless::Function
     Properties:
-      TemplateURL: ./templates/business.yaml
-      Parameters:
-        ApiId: !Ref RoutviApi
-        BusinessProfilesTable: !Ref BusinessProfilesTable
+      CodeUri: src/auth/register/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_ID: !Ref RoutviUserPool
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - cognito-idp:SignUp
+                - cognito-idp:AdminConfirmSignUp
+                - cognito-idp:AdminUpdateUserAttributes
+              Resource: !GetAtt RoutviUserPool.Arn
+      Events:
+        RegisterApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/register
+            Method: post
+
+  # ── Auth: User login ────────────────────────────────────────────────
+  AuthLoginFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/login/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        LoginApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/login
+            Method: post
+
+  # ── Auth: Token refresh ─────────────────────────────────────────────
+  AuthRefreshFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/refresh/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        RefreshApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/refresh
+            Method: post
+
+  # ── Auth: Password reset (sends verification code) ─────────────────
+  AuthResetPasswordFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/reset-password/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        ResetPasswordApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/reset-password
+            Method: post
+
+  # ── Auth: PIN / code verification ──────────────────────────────────
+  AuthVerifyCodeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/verify-code/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          USER_POOL_CLIENT_ID: !Ref RoutviUserPoolClient
+      Events:
+        VerifyCodeApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/verify-code
+            Method: post
+
+  # ── Auth: Current authenticated user (protected) ───────────────────
+  AuthMeFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/auth/me/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Events:
+        MeApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/auth/me
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: BUSINESS  (/v1/business/*)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Business: GET business profile ─────────────────────────────────
+  BusinessProfileGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/perfil-configuracion/profile/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        BusinessProfileGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/business/profile
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Business: PUT business profile (create or update) ───────────────
+  BusinessProfileUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/perfil-configuracion/profile-update/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        BusinessProfileUpdateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/business/profile
+            Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
 
 Outputs:
   ApiBaseUrl:
@@ -94,3 +268,7 @@ Outputs:
   UserPoolClientId:
     Description: ID del Cognito User Pool Client
     Value: !Ref RoutviUserPoolClient
+
+  BusinessProfilesTableName:
+    Description: Nombre de la tabla DynamoDB de perfiles
+    Value: !Ref BusinessProfilesTable
