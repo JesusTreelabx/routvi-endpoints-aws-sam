@@ -72,6 +72,23 @@ Resources:
         - AttributeName: userId
           KeyType: HASH
 
+  # ── DynamoDB: Menu categories table (businessId PK + categoryId SK) ──
+  MenuCategoriesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: MenuCategories
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: businessId
+          AttributeType: S
+        - AttributeName: categoryId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: businessId
+          KeyType: HASH
+        - AttributeName: categoryId
+          KeyType: RANGE
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -348,6 +365,65 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/media
             Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: MENU CATEGORIES  (/v1/menu/categories)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Menu: POST create a new category ────────────────────────────────
+  MenuCategoriesCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-categories/categories-create/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_CATEGORIES_TABLE: !Ref MenuCategoriesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:Query
+              Resource: !GetAtt MenuCategoriesTable.Arn
+      Events:
+        MenuCategoriesCreateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/categories
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: GET list all categories (sorted by order) ─────────────────
+  MenuCategoriesListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-categories/categories-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_CATEGORIES_TABLE: !Ref MenuCategoriesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt MenuCategoriesTable.Arn
+      Events:
+        MenuCategoriesListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/categories
+            Method: get
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 

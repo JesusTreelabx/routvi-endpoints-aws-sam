@@ -1,0 +1,12 @@
+{
+    "name": "routvi-menu-categories-create",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda POST /v1/menu/categories",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-dynamodb": "^3.0.0",
+        "@aws-sdk/lib-dynamodb": "^3.0.0",
+        "joi": "^17.13.3"
+    }
+}
