@@ -72,6 +72,18 @@ Resources:
         - AttributeName: userId
           KeyType: HASH
 
+  # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
+  RoutviMediaBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub 'routvi-media-${AWS::AccountId}-${AWS::Region}'
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ['*']
+            AllowedMethods: [GET, PUT]
+            AllowedOrigins: ['*']
+            MaxAge: 3000
+
   # ════════════════════════════════════════════════════════════════════
   # MODULE: AUTH  (/v1/auth/*)
   # ════════════════════════════════════════════════════════════════════
@@ -282,6 +294,60 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/business/publish
             Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Media: POST generate S3 presigned upload URL ────────────────────
+  MediaUploadUrlFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/media-s3/upload-url/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MEDIA_BUCKET_NAME: !Ref RoutviMediaBucket
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:PutObject
+              Resource: !Sub '${RoutviMediaBucket.Arn}/*'
+      Events:
+        MediaUploadUrlApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/media/upload-url
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Media: DELETE remove image from S3 bucket ───────────────────────
+  MediaDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/media-s3/delete/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MEDIA_BUCKET_NAME: !Ref RoutviMediaBucket
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - s3:DeleteObject
+              Resource: !Sub '${RoutviMediaBucket.Arn}/*'
+      Events:
+        MediaDeleteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/media
+            Method: delete
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 

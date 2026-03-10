@@ -1,0 +1,10 @@
+{
+    "name": "routvi-media-delete",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda DELETE /v1/media (delete S3 object)",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.0.0"
+    }
+}

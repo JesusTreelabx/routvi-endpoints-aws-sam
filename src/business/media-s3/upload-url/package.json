@@ -1,0 +1,11 @@
+{
+    "name": "routvi-media-upload-url",
+    "version": "1.0.0",
+    "description": "Routvi — Lambda POST /v1/media/upload-url (S3 Presigned URL)",
+    "main": "app.js",
+    "type": "commonjs",
+    "dependencies": {
+        "@aws-sdk/client-s3": "^3.0.0",
+        "@aws-sdk/s3-request-presigner": "^3.0.0"
+    }
+}
