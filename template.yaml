@@ -427,6 +427,89 @@ Resources:
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
+  # ── Menu: GET single category by categoryId ─────────────────────────
+  MenuCategoriesGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-categories/categories-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_CATEGORIES_TABLE: !Ref MenuCategoriesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt MenuCategoriesTable.Arn
+      Events:
+        MenuCategoriesGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/categories/{categoryId}
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: PUT update category by categoryId ──────────────────────────
+  MenuCategoriesUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-categories/categories-update/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_CATEGORIES_TABLE: !Ref MenuCategoriesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt MenuCategoriesTable.Arn
+      Events:
+        MenuCategoriesUpdateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/categories/{categoryId}
+            Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: DELETE category by categoryId ─────────────────────────────
+  MenuCategoriesDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-categories/categories-delete/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_CATEGORIES_TABLE: !Ref MenuCategoriesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt MenuCategoriesTable.Arn
+      Events:
+        MenuCategoriesDeleteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/categories/{categoryId}
+            Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API de Routvi
