@@ -106,6 +106,23 @@ Resources:
         - AttributeName: productId
           KeyType: RANGE
 
+  # ── DynamoDB: Promotions table (businessId PK + promotionId SK) ──────
+  PromotionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Promotions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: businessId
+          AttributeType: S
+        - AttributeName: promotionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: businessId
+          KeyType: HASH
+        - AttributeName: promotionId
+          KeyType: RANGE
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -758,6 +775,175 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/daily-special/set
             Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: PROMOTIONS  (/v1/promotions)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Promotions: POST create a new promotion ──────────────────────────
+  PromotionsCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotions-create/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsCreateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Promotions: GET list all promotions (optional ?active filter) ─────
+  PromotionsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotions-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Promotions: GET single promotion by promoId ──────────────────────
+  PromotionsGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotionsid-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions/{promoId}
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Promotions: PUT update promotion by promoId ───────────────────────
+  PromotionsUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotionsid-update/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsUpdateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions/{promoId}
+            Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Promotions: DELETE promotion by promoId ───────────────────────────
+  PromotionsDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotionsid-delete/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsDeleteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions/{promoId}
+            Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Promotions: PATCH toggle active status (1-click) ─────────────────
+  PromotionsStatusFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/promotions/promotionsid-status/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PromotionsStatusApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/promotions/{promoId}/status
+            Method: patch
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
