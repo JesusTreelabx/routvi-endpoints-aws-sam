@@ -89,6 +89,23 @@ Resources:
         - AttributeName: categoryId
           KeyType: RANGE
 
+  # ── DynamoDB: Menu products table (businessId PK + productId SK) ─────
+  MenuProductsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: MenuProducts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: businessId
+          AttributeType: S
+        - AttributeName: productId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: businessId
+          KeyType: HASH
+        - AttributeName: productId
+          KeyType: RANGE
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -507,6 +524,240 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/menu/categories/{categoryId}
             Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: MENU PRODUCTS  (/v1/menu/products)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Menu: POST create a new product ─────────────────────────────────
+  MenuProductsCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-create/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+                - dynamodb:Query
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsCreateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: GET list all products (optional ?categoryId filter) ────────
+  MenuProductsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: GET single product by productId ───────────────────────────
+  MenuProductsGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products/{productId}
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: PUT update product by productId ────────────────────────────
+  MenuProductsUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-update/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsUpdateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products/{productId}
+            Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: DELETE product by productId ───────────────────────────────
+  MenuProductsDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-delete/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsDeleteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products/{productId}
+            Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: PATCH toggle product availability (1-click sold out) ───────
+  MenuProductsAvailabilityFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-availability/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsAvailabilityApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products/{productId}/availability
+            Method: patch
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Menu: PUT reorder products (drag & drop) ─────────────────────────
+  MenuProductsReorderFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/menu-products/products-reorder/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt MenuProductsTable.Arn
+      Events:
+        MenuProductsReorderApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/menu/products/reorder
+            Method: put
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: DAILY SPECIAL  (/v1/daily-special)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Daily Special: POST set daily special + snapshot ────────────────
+  DailySpecialSetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/daily-special/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          MENU_PRODUCTS_TABLE: !Ref MenuProductsTable
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt MenuProductsTable.Arn
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        DailySpecialSetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/daily-special/set
+            Method: post
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 

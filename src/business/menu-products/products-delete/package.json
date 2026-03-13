@@ -1,0 +1,11 @@
+{
+  "name": "routvi-menu-products-delete",
+  "version": "1.0.0",
+  "description": "Routvi — Lambda DELETE /v1/menu/products/{productId}",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "routvi-menu-products-availability",
+  "version": "1.0.0",
+  "description": "Routvi — Lambda PATCH /v1/menu/products/{productId}/availability",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}
