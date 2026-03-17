@@ -123,6 +123,23 @@ Resources:
         - AttributeName: promotionId
           KeyType: RANGE
 
+  # ── DynamoDB: Social posts table (businessId PK + postId SK) ─────────
+  SocialPostsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: SocialPosts
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: businessId
+          AttributeType: S
+        - AttributeName: postId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: businessId
+          KeyType: HASH
+        - AttributeName: postId
+          KeyType: RANGE
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -944,6 +961,119 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/promotions/{promoId}/status
             Method: patch
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: SOCIAL POSTS  (/v1/social-posts)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Social: POST create a new social post ────────────────────────────
+  SocialPostsCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/social-posts/posts-create/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SOCIAL_POSTS_TABLE: !Ref SocialPostsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt SocialPostsTable.Arn
+      Events:
+        SocialPostsCreateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/social-posts
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Social: GET list all posts (optional ?platform filter) ───────────
+  SocialPostsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/social-posts/posts-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SOCIAL_POSTS_TABLE: !Ref SocialPostsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt SocialPostsTable.Arn
+      Events:
+        SocialPostsListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/social-posts
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Social: GET single post by postId ────────────────────────────────
+  SocialPostsGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/social-posts/postsid-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SOCIAL_POSTS_TABLE: !Ref SocialPostsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt SocialPostsTable.Arn
+      Events:
+        SocialPostsGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/social-posts/{postId}
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Social: DELETE post by postId ────────────────────────────────────
+  SocialPostsDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/business/social-posts/postsid-delete/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SOCIAL_POSTS_TABLE: !Ref SocialPostsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt SocialPostsTable.Arn
+      Events:
+        SocialPostsDeleteApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/social-posts/{postId}
+            Method: delete
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
