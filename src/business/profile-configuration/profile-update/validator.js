@@ -12,6 +12,10 @@ const profileSchema = Joi.object({
     'string.max': '"name" must be at most 100 characters.',
   }),
 
+  slug: Joi.string().pattern(/^[a-z0-9-]+$/).min(3).max(60).optional().messages({
+    'string.pattern.base': '"slug" can only contain lowercase letters, numbers, and hyphens.',
+  }),
+
   description: Joi.string().max(500).optional().messages({
     'string.max': '"description" must be at most 500 characters.',
   }),

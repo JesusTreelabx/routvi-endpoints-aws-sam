@@ -1,0 +1,13 @@
+{
+  "name": "routvi-public-form-suggestions",
+  "version": "1.0.0",
+  "description": "Routvi — Lambda POST /v1/suggestions",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "joi": "^17.13.0",
+    "uuid": "^9.0.1"
+  }
+}

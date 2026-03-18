@@ -68,9 +68,18 @@ Resources:
       AttributeDefinitions:
         - AttributeName: userId
           AttributeType: S
+        - AttributeName: slug
+          AttributeType: S
       KeySchema:
         - AttributeName: userId
           KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: slug-index
+          KeySchema:
+            - AttributeName: slug
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
 
   # ── DynamoDB: Menu categories table (businessId PK + categoryId SK) ──
   MenuCategoriesTable:
@@ -139,6 +148,32 @@ Resources:
           KeyType: HASH
         - AttributeName: postId
           KeyType: RANGE
+
+  # ── DynamoDB: Public suggestions table (suggestionId PK) ─────────────
+  SuggestionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Suggestions
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: suggestionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: suggestionId
+          KeyType: HASH
+
+  # ── DynamoDB: Public corrections table (correctionId PK) ─────────────
+  CorrectionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Corrections
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: correctionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: correctionId
+          KeyType: HASH
 
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
@@ -1076,6 +1111,232 @@ Resources:
             Method: delete
             Auth:
               Authorizer: RoutviCognitoAuthorizer
+
+  # ════════════════════════════════════════════════════════════════════
+  # MODULE: PUBLIC / QUICK-READ  (/v1/home-feed, /v1/businesses)
+  # No Cognito auth — fully public endpoints for diner WebApp
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Public: GET home feed (geolocated business list) ─────────────────
+  PublicHomeFeedFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/home-feed/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        PublicHomeFeedApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/home-feed
+            Method: get
+
+  # ── Public: GET businesses search & map ──────────────────────────────
+  PublicBusinessesListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/businesses-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        PublicBusinessesListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/businesses
+            Method: get
+
+  # ── Public: GET business profile by slug ─────────────────────────────
+  PublicBusinessesGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/businessesid-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !GetAtt BusinessProfilesTable.Arn
+                - !Sub '${BusinessProfilesTable.Arn}/index/slug-index'
+      Events:
+        PublicBusinessesGetApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/businesses/{businessId}
+            Method: get
+
+  # ── Public: GET business menu ────────────────────────────────────────
+  PublicBusinessesMenuFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/businesses-menu-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          CATEGORIES_TABLE: !Ref MenuCategoriesTable
+          PRODUCTS_TABLE: !Ref MenuProductsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource:
+                - !GetAtt MenuCategoriesTable.Arn
+                - !GetAtt MenuProductsTable.Arn
+      Events:
+        PublicBusinessesMenuApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/businesses/{businessId}/menu
+            Method: get
+
+  # ── Public: GET business promotions ──────────────────────────────────
+  PublicBusinessesPromotionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/businesses-promotions-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          PROMOTIONS_TABLE: !Ref PromotionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt PromotionsTable.Arn
+      Events:
+        PublicBusinessesPromotionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/businesses/{businessId}/promotions
+            Method: get
+
+  # ── Public: GET business posts ───────────────────────────────────────
+  PublicBusinessesPostsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/businesses-posts-get/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SOCIAL_POSTS_TABLE: !Ref SocialPostsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt SocialPostsTable.Arn
+      Events:
+        PublicBusinessesPostsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/businesses/{businessId}/posts
+            Method: get
+
+  # ── Public: POST whatsapp preview (No DB needed) ─────────────────────
+  PublicWhatsappPreviewFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/whatsapp-preview/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Events:
+        PublicWhatsappPreviewApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/whatsapp/preview
+            Method: post
+
+  # ── Public: POST new suggestion ──────────────────────────────────────
+  PublicFormSuggestionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/form-suggestions/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SUGGESTIONS_TABLE: !Ref SuggestionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt SuggestionsTable.Arn
+      Events:
+        PublicFormSuggestionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/suggestions
+            Method: post
+
+  # ── Public: POST new correction ──────────────────────────────────────
+  PublicFormCorrectionsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/quick-read/form-corrections/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          CORRECTIONS_TABLE: !Ref CorrectionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt CorrectionsTable.Arn
+      Events:
+        PublicFormCorrectionsApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/corrections
+            Method: post
 
 Outputs:
   ApiBaseUrl:

@@ -1,0 +1,10 @@
+{
+  "name": "routvi-public-whatsapp-preview",
+  "version": "1.0.0",
+  "description": "Routvi — Lambda POST /v1/whatsapp/preview",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "joi": "^17.13.0"
+  }
+}
