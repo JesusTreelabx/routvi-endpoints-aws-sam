@@ -1,0 +1,11 @@
+{
+  "name": "routvi-admin-access-requests-list",
+  "version": "1.0.0",
+  "description": "Routvi Admin — Lambda GET /v1/admin/access-requests",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

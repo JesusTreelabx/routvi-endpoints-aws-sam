@@ -175,6 +175,23 @@ Resources:
         - AttributeName: correctionId
           KeyType: HASH
 
+  # ── DynamoDB: User Favorites table (userId PK + favoriteId SK) ───────
+  FavoritesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Favorites
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: favoriteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: favoriteId
+          KeyType: RANGE
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -1337,6 +1354,88 @@ Resources:
             RestApiId: !Ref RoutviApi
             Path: /v1/corrections
             Method: post
+
+  # ── Favorites: POST save promotion ───────────────────────────────────
+  FavoritesPromoSaveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/favorites/promotions-save/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          FAVORITES_TABLE: !Ref FavoritesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt FavoritesTable.Arn
+      Events:
+        FavoritesPromoSaveApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/favorites/promotions/{promoId}
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Favorites: DELETE remove promotion ───────────────────────────────
+  FavoritesPromoRemoveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/favorites/promotions-remove/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          FAVORITES_TABLE: !Ref FavoritesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:DeleteItem
+              Resource: !GetAtt FavoritesTable.Arn
+      Events:
+        FavoritesPromoRemoveApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/favorites/promotions/{promoId}
+            Method: delete
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Favorites: GET user favorites list ───────────────────────────────
+  FavoritesUserListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/public/favorites/user-favorites-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          FAVORITES_TABLE: !Ref FavoritesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Query
+              Resource: !GetAtt FavoritesTable.Arn
+      Events:
+        FavoritesUserListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/users/me/favorites
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
 
 Outputs:
   ApiBaseUrl:
