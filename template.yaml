@@ -49,6 +49,21 @@ Resources:
         - ALLOW_USER_PASSWORD_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
+  # ── Cognito: Admin staff user (created on first deploy) ───────────────
+  AdminUser:
+    Type: AWS::Cognito::UserPoolUser
+    Properties:
+      UserPoolId: !Ref RoutviUserPool
+      Username: admin@routvi.com
+      MessageAction: SUPPRESS   # No envía email de bienvenida
+      UserAttributes:
+        - Name: email
+          Value: admin@routvi.com
+        - Name: email_verified
+          Value: 'true'
+        - Name: custom:rol
+          Value: admin
+
   # ── API Gateway (shared across all modules) ────────────────────────
   RoutviApi:
     Type: AWS::Serverless::Api
@@ -191,6 +206,32 @@ Resources:
           KeyType: HASH
         - AttributeName: favoriteId
           KeyType: RANGE
+
+  # ── DynamoDB: Admin Access Requests table (requestId PK) ────────────
+  AccessRequestsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: AccessRequests
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: requestId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: requestId
+          KeyType: HASH
+
+  # ── DynamoDB: Admin Invites table (inviteId PK) ───────────────────────
+  InvitesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Invites
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: inviteId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: inviteId
+          KeyType: HASH
 
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
@@ -1437,6 +1478,67 @@ Resources:
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
+  # ── Admin: GET access requests list ─────────────────────────────────
+  AdminAccessRequestsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/access-requests-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          ACCESS_REQUESTS_TABLE: !Ref AccessRequestsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+              Resource: !GetAtt AccessRequestsTable.Arn
+      Events:
+        AdminAccessRequestsListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/access-requests
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Admin: POST approve access request ──────────────────────────────
+  AdminAccessRequestsApproveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/access-requests-approve/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          ACCESS_REQUESTS_TABLE: !Ref AccessRequestsTable
+          INVITES_TABLE: !Ref InvitesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt AccessRequestsTable.Arn
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt InvitesTable.Arn
+      Events:
+        AdminAccessRequestsApproveApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/access-requests/{requestId}/approve
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API de Routvi
@@ -1453,3 +1555,5 @@ Outputs:
   BusinessProfilesTableName:
     Description: Nombre de la tabla DynamoDB de perfiles
     Value: !Ref BusinessProfilesTable
+
+
