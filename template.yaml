@@ -233,6 +233,19 @@ Resources:
         - AttributeName: inviteId
           KeyType: HASH
 
+  # ── DynamoDB: Featured of the Day table (featuredKey PK = city#date) ──
+  FeaturedTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: FeaturedOfDay
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: featuredKey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: featuredKey
+          KeyType: HASH
+
   # ── S3: Media bucket (images — gallery, banners, logos) ─────────────
   RoutviMediaBucket:
     Type: AWS::S3::Bucket
@@ -1539,6 +1552,127 @@ Resources:
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
+  # ── Admin: POST create invite manually ───────────────────────────────
+  AdminInvitesCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/invites-create/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          INVITES_TABLE: !Ref InvitesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt InvitesTable.Arn
+      Events:
+        AdminInvitesCreateApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/invites
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Admin: GET corrections list ───────────────────────────────────────
+  AdminCorrectionsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/corrections-list/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          CORRECTIONS_TABLE: !Ref CorrectionsTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+              Resource: !GetAtt CorrectionsTable.Arn
+      Events:
+        AdminCorrectionsListApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/corrections
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Admin: POST approve correction (critical — badge logic) ──────────
+  AdminCorrectionsApproveFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/corrections-approve/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          CORRECTIONS_TABLE: !Ref CorrectionsTable
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt CorrectionsTable.Arn
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        AdminCorrectionsApproveApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/corrections/{correctionId}/approve
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Admin: POST featured of day ───────────────────────────────────────
+  AdminFeaturedOfDayFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/admin/admin-approves/featured-of-day/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          FEATURED_TABLE: !Ref FeaturedTable
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:PutItem
+              Resource: !GetAtt FeaturedTable.Arn
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        AdminFeaturedOfDayApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/admin/featured-of-day
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API de Routvi
@@ -1555,5 +1689,4 @@ Outputs:
   BusinessProfilesTableName:
     Description: Nombre de la tabla DynamoDB de perfiles
     Value: !Ref BusinessProfilesTable
-
 

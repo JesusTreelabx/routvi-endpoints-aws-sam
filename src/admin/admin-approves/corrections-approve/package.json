@@ -1,0 +1,11 @@
+{
+  "name": "routvi-admin-corrections-approve",
+  "version": "1.0.0",
+  "description": "Routvi Admin — Lambda POST /v1/admin/corrections/{correctionId}/approve",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}
