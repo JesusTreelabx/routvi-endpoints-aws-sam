@@ -1,0 +1,13 @@
+{
+  "name": "routvi-billing-checkout",
+  "version": "1.0.0",
+  "description": "Routvi Billing — Lambda POST /v1/billing/checkout",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "joi": "^18.1.1",
+    "stripe": "^14.0.0"
+  }
+}

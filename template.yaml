@@ -1673,6 +1673,70 @@ Resources:
             Auth:
               Authorizer: RoutviCognitoAuthorizer
 
+  # ════════════════════════════════════════════════════════════════════
+  # PAYMENTS / BILLING (Stripe)
+  # ════════════════════════════════════════════════════════════════════
+
+  # ── Billing: GET customer portal ─────────────────────────────────────
+  BillingPortalFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/payments/billing-portal/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+          STRIPE_SECRET_KEY: '{{resolve:ssm:/routvi/stripe/secret-key}}'
+          PORTAL_RETURN_URL: 'https://app.routvi.mx/dashboard'
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        BillingPortalApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/billing/portal
+            Method: get
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
+  # ── Billing: POST checkout session ───────────────────────────────────
+  BillingCheckoutFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: src/payments/billing-checkout/
+      Handler: app.handler
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUSINESS_PROFILES_TABLE: !Ref BusinessProfilesTable
+          STRIPE_SECRET_KEY: '{{resolve:ssm:/routvi/stripe/secret-key}}'
+          CHECKOUT_SUCCESS_URL: 'https://app.routvi.mx/dashboard?checkout=success'
+          CHECKOUT_CANCEL_URL:  'https://app.routvi.mx/dashboard?checkout=cancelled'
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:GetItem
+                - dynamodb:UpdateItem
+              Resource: !GetAtt BusinessProfilesTable.Arn
+      Events:
+        BillingCheckoutApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref RoutviApi
+            Path: /v1/billing/checkout
+            Method: post
+            Auth:
+              Authorizer: RoutviCognitoAuthorizer
+
 Outputs:
   ApiBaseUrl:
     Description: URL base de la API de Routvi

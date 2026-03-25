@@ -1,0 +1,12 @@
+{
+  "name": "routvi-billing-portal",
+  "version": "1.0.0",
+  "description": "Routvi Billing — Lambda GET /v1/billing/portal",
+  "main": "app.js",
+  "type": "commonjs",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0",
+    "stripe": "^14.0.0"
+  }
+}

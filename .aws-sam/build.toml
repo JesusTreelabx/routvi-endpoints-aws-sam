@@ -333,4 +333,157 @@ manifest_hash = ""
 packagetype = "Zip"
 functions = ["PublicBusinessesGetFunction"]
 
+[function_build_definitions.e96e3264-425b-42c6-b30f-f2da71b701c7]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/businesses-menu-get"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicBusinessesMenuFunction"]
+
+[function_build_definitions.4b4bdada-ca52-48db-a615-2e707e0150f3]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/businesses-promotions-get"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicBusinessesPromotionsFunction"]
+
+[function_build_definitions.9cfe0f52-bc58-4d3e-b058-ff724a57b385]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/businesses-posts-get"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicBusinessesPostsFunction"]
+
+[function_build_definitions.65d29a9c-d07a-48ea-8e6b-a287632948cc]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/whatsapp-preview"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicWhatsappPreviewFunction"]
+
+[function_build_definitions.6d176bad-7627-4107-88c1-a5405cea3736]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/form-suggestions"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicFormSuggestionsFunction"]
+
+[function_build_definitions.cf5042dc-5ca9-4f43-ae3a-66b369bca01b]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/quick-read/form-corrections"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["PublicFormCorrectionsFunction"]
+
+[function_build_definitions.52b4a8b0-e650-4c80-aa09-4f43e61ca758]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/favorites/promotions-save"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["FavoritesPromoSaveFunction"]
+
+[function_build_definitions.d123a7ad-69ce-41e3-b133-80d7af371443]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/favorites/promotions-remove"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["FavoritesPromoRemoveFunction"]
+
+[function_build_definitions.5a80562f-1a32-419c-bf92-fdba9018a4dd]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/public/favorites/user-favorites-list"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["FavoritesUserListFunction"]
+
+[function_build_definitions.46791d63-5bd5-4084-add0-59977bedd51e]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/access-requests-list"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminAccessRequestsListFunction"]
+
+[function_build_definitions.a3975392-c8a3-4643-92e4-f17cc6de78a1]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/access-requests-approve"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminAccessRequestsApproveFunction"]
+
+[function_build_definitions.cfd8ce98-9f95-4123-b581-7d4d6f83833e]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/invites-create"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminInvitesCreateFunction"]
+
+[function_build_definitions.e122551c-edf5-4dad-b21f-98395efc0d38]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/corrections-list"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminCorrectionsListFunction"]
+
+[function_build_definitions.e089118f-1dfa-49cc-bac3-d06ecc360dd6]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/corrections-approve"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminCorrectionsApproveFunction"]
+
+[function_build_definitions.b908fb5c-5149-434b-8bb0-4a2d0dc0a761]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/admin/admin-approves/featured-of-day"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["AdminFeaturedOfDayFunction"]
+
+[function_build_definitions.cc8fbfc7-d032-4c05-a77a-c9152efa12e2]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/payments/billing-portal"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["BillingPortalFunction"]
+
+[function_build_definitions.6a774f50-34f1-4aa6-a732-2bb8899c8112]
+codeuri = "/Users/jesuscapetillovaldez/Documents/Repos-Github/routvi-endpoints-aws-sam/src/payments/billing-checkout"
+runtime = "nodejs20.x"
+architecture = "x86_64"
+handler = "app.handler"
+manifest_hash = ""
+packagetype = "Zip"
+functions = ["BillingCheckoutFunction"]
+
 [layer_build_definitions]

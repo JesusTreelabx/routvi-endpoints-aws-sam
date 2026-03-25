@@ -1,0 +1,12 @@
+{
+  "httpMethod": "POST",
+  "requestContext": {
+    "authorizer": {
+      "claims": {
+        "sub": "local-test-user",
+        "email": "test@routvi.mx"
+      }
+    }
+  },
+  "body": "{\"priceId\": \"price_1TDRVI6D8zyBsrI1mjjH2eI5\"}"
+}
